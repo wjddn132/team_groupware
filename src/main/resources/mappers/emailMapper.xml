@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.softsociety.Team4GroupWare.dao.EmailDAO">
+	<!-- 이메일 저장 -->
+	<insert id="insertMailTotal" parameterType="Email">
+		INSERT INTO
+			team4_mailbox_total
+			(
+				email_code
+				, company_code
+				, email_title
+				, email_content
+				, email_sender
+				, email_receiver
+				, email_cc_receiver
+			)
+			values
+			(
+				'M'||LPAD(team4_mailbox_total_seq.nextval, 4, 0)
+				, #{company_code}
+				, #{email_title}
+				, #{email_content}
+				, #{email_sender}
+				, #{email_receiver}
+				, #{email_cc_receiver}
+			)
+	</insert>
+	<!-- 이메일 발송 -->
+	<insert id="sendToMailbox" parameterType="Email">
+		<selectKey  resultType="String" keyProperty="email_code" order="BEFORE">
+			SELECT  FROM DUAL
+		</selectKey>
+		INSERT INTO
+			team4_mailbox_total
+			(
+				email_code
+				, company_code
+				, email_title
+				, email_content
+				, email_sender
+			)
+			values
+			(
+				#{email_code}
+				, #{company_code}
+				, #{email_title}
+				, #{email_content}
+				, #{email_sender}
+			)
+	</insert>
+
+	<!-- 수신인 저장 -->
+	<insert id="insertReceiver" parameterType="map">
+		INSERT INTO
+			team4_mailbox_process
+			(
+				email_num
+				, email_code
+				, company_code
+				, email_receiver
+				)
+			values
+				(
+				team4_mailbox_process_seq.nextval
+				, #{email_code}
+				, #{company_code}
+				, #{email_receiver}
+				)
+	</insert>
+
+	<!-- 참조인 저장 -->
+	<insert id="insertCCreceiver" parameterType="map">
+		INSERT INTO
+		team4_mailbox_process
+		(
+		email_num
+		, email_code
+		, company_code
+		, email_cc_receiver
+		)
+		values
+		(
+		team4_mailbox_process_seq.nextval
+		, #{email_code}
+		, #{company_code}
+		, #{email_cc_receiver}
+		)
+	</insert>
+
+	<!-- 이메일 발송시 첨부파일 정보 인서트 -->
+	<insert id="insertMailAtteched" parameterType="AttachedFile">
+		insert into
+		team4_attached_file
+		(
+		company_code
+		,attached_file_code
+		,document_code
+		,attached_file_origin_name
+		,attached_file_save_name
+		,attached_file_ext
+		,employee_code
+		,employee_id
+		,employee_name
+		)
+		values
+		(
+		#{company_code}
+		,'File'||LPAD(team4_attached_file_seq.nextval,
+		4, 0)
+		,#{document_code}
+		,#{attached_file_origin_name}
+		,#{attached_file_save_name}
+		,#{attached_file_ext}
+		,#{employee_code}
+		,#{employee_id}
+		,#{employee_name}
+		)
+	</insert>
+	
+	<!-- 보낸 메일함 -->
+	<select id="selectSentmail" parameterType="String" resultType="Mailinfo">
+		SELECT
+			email_code
+			, company_code
+			, email_title
+			, TO_CHAR(email_date, 'YYYY-MM-DD') as "email_date"
+		FROM
+			team4_mailbox_total
+		WHERE 
+			email_sender = #{email_sender}
+		ORDER BY
+			email_date desc
+	</select>
+	
+	<!-- 페이지 나누기를 위한 글 개수 조회 -->
+	<select id="sentmailCount" parameterType="String" resultType="int">
+	SELECT 
+		count(*)
+	FROM
+		team4_mailbox_total T, team4_mailbox_process P
+	WHERE 
+		T.email_code =	P.email_code 
+		and T.email_sender = #{email_sender}	
+	</select>	
+	
+	<!-- 전체 메일함 -->
+		<select id="readAllmail" parameterType="String" resultType="Mailinfo">
+		SELECT DISTINCT
+			email_code
+			, company_code
+			, email_title
+			, email_sender
+			, TO_CHAR(email_date, 'YYYY-MM-DD') as "email_date"
+		FROM
+			team4_mailbox_total
+		WHERE 
+			email_receiver = #{email_receiver} or email_cc_receiver = #{email_receiver}
+		ORDER BY
+			email_date desc
+	</select>
+	
+	<!-- 메일 1개 불러오기 -->
+		<select id="selectOne" parameterType="String" resultType="Mailinfo">
+		SELECT 
+			email_code
+			, company_code
+			, email_title
+			, email_sender
+			, email_date
+			, email_content
+			, email_receiver
+			, email_cc_receiver
+		FROM
+			team4_mailbox_total
+		WHERE 
+			email_code = #{email_code}
+	</select>
+	
+		<!-- 메일 1개의 첨부파일 불러오기 -->
+		<select id="MailAttachedfile" parameterType="String" resultType="AttachedFile">
+		SELECT 
+			company_code
+			,attached_file_code
+			,document_code
+			,attached_file_origin_name
+			,attached_file_save_name
+			,attached_file_ext
+			,attached_file_date
+			,employee_code
+			,employee_id
+			,employee_name
+		FROM
+			team4_attached_file
+		WHERE 
+			document_code = #{email_code}
+	</select>
+</mapper>

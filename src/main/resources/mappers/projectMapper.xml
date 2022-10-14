@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.softsociety.Team4GroupWare.dao.ProjectDAO">
+
+    <!-- 로그인한 유저 정보 불러오기 -->
+    <select id="readEmploye" parameterType="string" resultType="Employee">
+        select *
+        from team4_employee
+        where employee_id = #{employ_id}
+    </select>
+
+    <!-- 전체 사원 리스트 출력 -->
+    <select id="employeeList" parameterType="Employee" resultType="Employee">
+        select *
+        from team4_employee
+        where company_code = #{company_code}
+        order by employee_code desc
+    </select>
+
+
+    <!-- 로그인한 유저 회사 정보 불러옴-->
+    <select id="readCompany" parameterType="string" resultType="Company">
+        select company_code
+             , company_name
+             , company_business_num
+             , to_char(company_est_date, 'yyyy/mm/dd') as company_est_date
+             , company_ceo_name
+             , company_postcode
+             , company_address
+             , company_detailaddress
+             , company_extraaddress
+             , company_logo
+        from team4_company
+        where company_code = #{company_code}
+    </select>
+
+
+    <!-- 조직도 내용 불러오기 -->
+    <select id="readOrg" parameterType="Company" resultType="Organization">
+        SELECT department_id
+             , parent_id
+             , department_name
+             , LEVEL
+             , REGEXP_REPLACE(SYS_CONNECT_BY_PATH(department_name, ' '), '^\s+\-\>\s+', '') as "PATH"
+             , open
+        FROM team4_organization
+        WHERE company_code = #{company_code}
+        START
+        WITH
+  			parent_id =
+        #{company_name}
+        CONNECT
+        BY
+        PRIOR
+        department_id
+        =
+        parent_id
+        ORDER
+        SIBLINGS
+        BY
+        department_id
+        ASC
+    </select>
+
+    <!-- 조직도 사원 리스트 출력 -->
+    <select id="findByOrganization" parameterType="Employee" resultType="Employee">
+        select *
+        from team4_employee
+        where company_code = #{company_code}
+          and organization = #{organization}
+        order by employee_code desc
+    </select>
+
+    <!-- 조직도 부서 리스트 출력 -->
+    <select id="findByParentId" parameterType="string" resultType="Organization">
+        select *
+        from team4_organization
+        where parent_id = #{parent_id}
+    </select>
+    <!-- 새로운 조직 생성 -->
+    <insert id="addOrganization" parameterType="Organization">
+        insert into team4_organization
+        ( company_code
+        , department_id
+        , parent_id
+        , department_name)
+        values ( #{company_code}
+               , #{department_id} + 1
+               , #{parent_id}
+               , #{department_name})
+    </insert>
+
+    <!-- 프로젝트 작성 -->
+    <insert id="insertPj" parameterType="Project">
+        insert into team4_project (pj_code,
+                                   employee_code,
+                                   pj_name,
+                                   pj_startdate,
+                                   pj_enddate,
+                                   pj_content)
+        values ( team4_project_seq.nextval
+               , #{employee_code}
+               , #{pj_name}
+               , #{pj_startdate}
+               , #{pj_enddate}
+               , #{pj_content})
+    </insert>
+
+    <insert id="insertPart" parameterType="ProjectPart">
+        insert into team4_projectpart
+        (PJ_PART_CODE,PJ_CODE,EMPLOYEE_ID,PJ_PART_CONTENT, EMPLOYEE_NAME)
+        values 
+        (TEAM4_PROJECTPART_SEQ.nextval, #{pj_code}, #{employee_id}, #{pj_part_content}, #{employee_name})
+        
+    </insert>
+
+    <insert id="insertPj_member" parameterType="java.util.List">
+        INSERT INTO team4_projectMember(
+        pj_member_code,
+        pj_code,
+        employee_code,
+        pj_member_position
+        )
+        SELECT team4_projectMember_seq.nextval,team4_project_seq.currval, m.*
+        FROM (
+        <foreach collection="list" item="members" separator="UNION ALL ">
+            SELECT #{members.employee_code} AS employee_code, #{members.position_type} AS pj_member_position FROM DUAL
+        </foreach>
+        ) m
+    </insert>
+
+
+    <!-- 프로젝트 불러오기 -->
+    <select id="findProject" parameterType="String" resultType="Project">
+        select *
+        from TEAM4_PROJECT
+        where PJ_CODE = #{pj_code}
+    </select>
+    <!-- 나의 프로젝트 불러오기 -->
+    <select id="selectProjectList" parameterType="String" resultType="Project">
+        select p.PJ_CODE,p.EMPLOYEE_CODE,e.COMPANY_CODE
+             ,p.PJ_NAME,p.PJ_STARTDATE,p.PJ_ENDDATE,e.EMPLOYEE_NAME pj_leader_name,p.PJ_CONTENT,p.PJ_STATE,c.COMPANY_NAME
+             ,p.PJ_PERCENT from
+            TEAM4_PROJECTMEMBER pm
+                left join TEAM4_PROJECT p
+                          on pm.PJ_CODE=p.PJ_CODE
+                left join TEAM4_EMPLOYEE e
+                          on e.employee_code = p.EMPLOYEE_CODE
+                left join TEAM4_COMPANY c
+                          on c.COMPANY_CODE= e.COMPANY_CODE
+        where pm.EMPLOYEE_CODE = (select EMPLOYEE_CODE from team4_EMPLOYEE where EMPLOYEE_ID=#{employee_id})
+    </select>
+
+
+    <!-- 프로젝트 멤버 불러오기-->
+    <select id="selectPj_member" parameterType="String" resultType="ProjectMember">
+        select *
+        from TEAM4_PROJECTMEMBER
+        where pj_code = #{pj_code}
+    </select>
+    <!-- 프로젝트 멤버에 저장할거-->
+    <select id="getEmployeeById" parameterType="String" resultType="Employee">
+        select employee_id, employee_name, position_type, ORGANIZATION
+        from team4_employee
+        where employee_code = #{employee_code}
+    </select>
+
+    <select id="selectPj_part" parameterType="String" resultType="ProjectPart">
+        select *
+        from team4_projectpart
+        where PJ_CODE = #{pj_code}
+    </select>
+    <!-- 프로젝트 수정 리더만 가능-->
+    <update id="updatePj" parameterType="project">
+        update
+            team4_project
+        set pj_name    = #{pj_name}
+          , pj_enddate = #{pj_enddate}
+          , pj_content = #{pj_content}
+        where employee_id = #{pj_leader_id}
+          and pj_code = #{pj_code}
+    </update>
+
+    <!-- 프로젝트 멤버 수정 리더만 가능 리더권한 추가해야할듯-->
+    <update id="updatePj_member" parameterType="projectMember">
+        update
+            team4_projectMember
+        set employee_code        = #{employee_code}
+          , pj_member_id         = #{pj_member_id}
+          , pj_member_name       = #{pj_member_name}
+          , pj_member_department = #{pj_member_department}
+          , pj_member_position   = #{pj_member_position}
+        where pj_code = #{pj_code}
+    </update>
+    <!-- 프로젝트 파트 수정 해당자만 가능-->
+    <update id="updatePj_part" parameterType="projectPart">
+        update
+            team4_projectPart
+        set pj_part_name       = #{pj_part_name}
+          , pj_part_content    = #{pj_part_content}
+          , pj_part_completion = #{pj_part_completion}
+        where pj_code = #{pj_code}
+          and employee_id = #{pj_part_member_id}
+    </update>
+
+    <!-- 프로젝트 삭제 리더만 가능 -->
+    <delete id="deletePj" parameterType="project">
+        delete
+        from team4_project
+        where employee_id = #{pj_leader_id} , pj_code = #{pj_code}
+    </delete>
+</mapper>

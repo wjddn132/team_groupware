@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>KUROWARE 캘린더</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    
+  <!-- bootstrap 4 -->
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+  <!-- fullcalendar CDN -->
+  <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.8.0/main.min.css' rel='stylesheet'/>
+	
+  <!-- Favicons -->
+  <link th:href="@{/assets/img/favicon.png}" rel="icon">
+  <link th:href="@{/assets/img/apple-touch-icon.png}" rel="apple-touch-icon">
+
+  <!-- Google Fonts -->
+  <link th:href="@{https://fonts.gstatic.com}" rel="preconnect">
+  <link th:href="@{https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i}" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link th:href="@{/assets/vendor/bootstrap/css/bootstrap.min.css}" rel="stylesheet">
+  <link th:href="@{/assets/vendor/bootstrap-icons/bootstrap-icons.css}" rel="stylesheet">
+  <link th:href="@{/assets/vendor/boxicons/css/boxicons.min.css}" rel="stylesheet">
+  <link th:href="@{/assets/vendor/quill/quill.snow.css}" rel="stylesheet">
+  <link th:href="@{/assets/vendor/quill/quill.bubble.css}" rel="stylesheet">
+  <link th:href="@{/assets/vendor/remixicon/remixicon.css}" rel="stylesheet">
+  <link th:href="@{/assets/vendor/simple-datatables/style.css}" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link th:href="@{/assets/css/style.css}" rel="stylesheet">
+  
+  <!-- Vendor JS Files -->
+  <script th:src="@{/assets/vendor/apexcharts/apexcharts.min.js}"></script>
+	<script th:src="@{/assets/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+	<script th:src="@{/assets/vendor/chart.js/chart.min.js}"></script>
+	<script th:src="@{/assets/vendor/echarts/echarts.min.js}"></script>
+	<script th:src="@{/assets/vendor/quill/quill.min.js}"></script>
+	<script th:src="@{/assets/vendor/simple-datatables/simple-datatables.js}"></script>
+	<script th:src="@{/assets/vendor/tinymce/tinymce.min.js}"></script>
+	<script th:src="@{/assets/vendor/php-email-form/validate.js}"></script>
+
+	<!-- Template Main JS File -->
+	<script th:src="@{/assets/js/main.js}"></script>
+  
+  <!-- jquery -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  
+  <!-- 부트스트랩4 js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+  
+  <!-- 풀캘린더 js -->
+  <script th:src='@{/js/calendar/fullcalendar.js}'></script>
+
+  <script type="text/javascript" th:inline="javascript">
+        $(document).ready(function () {
+        	selectScheduleList();
+        	
+	       	$('#deleteSchedule').click(function () {
+	       		$('#deleteSchedule_num').val($(this).attr('schedule_num'));
+	       		$('#deleteScheduleForm').submit();F
+	        });
+	       	
+	       	$('#sprintSettingModalClose').on('click', function(){
+	       		$('#calendarModal').modal('hide');
+	       	});
+	       	
+	       	$('#sprintSettingModalClose2').on('click', function(){
+	       		$('#calendarModal2').modal('hide');
+	       	});
+	       	
+	       	$('#closeButton1').on('click', function(){
+	       		$('#calendarModal').modal('hide');
+	       	});
+	       	
+	       	$('#closeButton2').on('click', function(){
+	       		$('#calendarModal2').modal('hide');
+	       	});
+	        
+		});
+        
+        function createCalendar(scheduleList) {
+        	var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                timeZone: 'Asia/Seoul',
+                initialView: 'dayGridMonth', // 홈페이지에서 다른 형태의 view를 확인할  수 있다.
+                events: createEvent(scheduleList)
+            , headerToolbar: {
+                    center: 'addEventButton' // headerToolbar에 버튼을 추가
+                }, customButtons: {
+                    addEventButton: { // 추가한 버튼 설정
+                        text : "일정 추가",  // 버튼 내용
+                        click : function(){ // 버튼 클릭 시 이벤트 추가
+                            $("#calendarModal").modal("show"); // modal 나타내기
+
+                            $("#addCalendar").on("click",function(){  // modal의 추가 버튼 클릭 시
+                            	var schedule_title = $("#schedule_title").val();
+                                var schedule_contents = $("#schedule_contents").val();
+                                var schedule_startDate = $("#schedule_startDate").val();
+                                var schedule_endDate = $("#schedule_endDate").val();
+                                
+                                //내용 입력 여부 확인
+                                if(schedule_title == null || schedule_title == ""){
+                                    alert("제목을 입력하세요.");
+                                }else if(schedule_contents == null || schedule_contents == ""){
+                                    alert("내용을 입력하세요.");
+                                }else if(schedule_startDate == "" || schedule_endDate ==""){
+                                    alert("날짜를 입력하세요.");
+                                }else if(new Date(schedule_endDate)- new Date(schedule_startDate) < 0){ // date 타입으로 변경 후 확인
+                                    alert("종료일이 시작일보다 먼저입니다.");
+                                }else{ // 정상적인 입력 시
+                                    var obj = {
+                                        "schedule_title" : schedule_title,
+                                        "schedule_contents" : schedule_contents,
+                                        "schedule_startDate" : schedule_startDate,
+                                        "schedule_endDate" : schedule_endDate
+                                    }//전송할 객체 생성
+
+                                    console.log(obj); //서버로 해당 객체를 전달해서 DB 연동 가능
+                                }
+                            });
+                        }
+                    }
+                },
+                displayEventTime: false // 시간 표시 x
+                ,eventClick: function(info) {
+                	
+                	//일정 클릭시의 해당 일정 정보를 모두 콘솔에 출력한다.
+                	console.log(info.event);
+                	
+                	//스케줄의 제목과 내용을 출력한다.
+                	$('#schedule_title2').val(info.event._def.title);
+                	$('#schedule_contents2').val(info.event._def.extendedProps.contents);
+                	
+                	//스케줄의 시작일을 출력한다. (날짜형식이 다르므로 직접 작성해야한다.)
+                	let startDate = new Date(info.event._instance.range.start);
+                	startDate.setHours(startDate.getHours()-9);
+                	let startDateStr = startDate.getFullYear() + "-" + 
+                				((startDate.getMonth()+1)>=10 ? startDate.getMonth()+1 : "0"+(startDate.getMonth()+1)) + "-" + 
+                				(startDate.getDate()>=10 ? startDate.getDate() : "0"+startDate.getDate()) + " " + 
+                				(startDate.getHours()>=10 ? startDate.getHours() : "0"+startDate.getHours())+ ":" + 
+                				(startDate.getMinutes()>=10 ? startDate.getMinutes() : "0"+startDate.getMinutes());
+                	$('#schedule_startDate2').val(startDateStr);
+                	
+                	//스케줄의 종료일을 출력한다. (날짜형식이 다르므로 직접 작성해야한다.)
+                	let endDate = new Date(info.event._instance.range.end);
+                	endDate.setHours(endDate.getHours()-9);
+                	let endDateStr = endDate.getFullYear() + "-" + 
+                				((endDate.getMonth()+1)>=10 ? endDate.getMonth()+1 : "0"+(endDate.getMonth()+1)) + "-" + 
+                				(endDate.getDate()>=10 ? endDate.getDate() : "0"+endDate.getDate()) + " " + 
+                				(endDate.getHours()>=10 ? endDate.getHours() : "0"+endDate.getHours())+ ":" + 
+                				(endDate.getMinutes()>=10 ? endDate.getMinutes() : "0"+endDate.getMinutes());
+                	$('#schedule_endDate2').val(endDateStr);
+                	
+                	
+                	$('#deleteSchedule').attr('schedule_num', info.event._def.extendedProps.schedule_num);
+                	
+                	$('#calendarModal2').modal('show');
+				}
+            });
+            
+            calendar.render();
+        }
+        
+        function selectScheduleList(){
+        	$.ajax({
+        		url: 'selectScheduleList',
+        		type: 'post',
+        		data: {
+        			company_code : [[${company_code}]]
+        		},
+        		dataType: 'json',
+        		success: function (scheduleList) {
+        			createCalendar(scheduleList);
+        		},
+        		error: function () {
+        			alert('저장 실패');
+        		}
+        	});
+        }
+        
+        function createEvent(objList){
+        	let arrEvent = new Array();
+        	for(let obj of objList){
+
+    			console.log(obj);
+        		let event = new Object();
+        		event.schedule_num = obj.schedule_num;
+        		event.title = obj.schedule_title;
+        		//if(obj.schedule_allDay === '1')
+				//	event.allDay = true;
+        		event.start = obj.schedule_startDate.replace(' ', 'T');
+        		event.end = obj.schedule_endDate.replace(' ', 'T');
+        		event.textColor = obj.schedule_textColor;
+        		event.borderColor = obj.schedule_borderColor;
+        		event.backgroundColor = obj.schedule_backgroundColor;
+        		event.contents = obj.schedule_contents;
+        		event.company_code = obj.company_code;
+        		event.schedule_writer_id = obj.schedule_writer_id;
+        		event.schedule_type = obj.schedule_type;
+
+    			console.log(event);
+				arrEvent.push(event);
+				
+        	}
+        	return arrEvent;
+        }
+    </script>
+    
+</head>
+
+<body>
+
+ <!-- ======= Header ======= -->
+  <header th:replace="/indexcommon/header :: header"></header><!-- End Header -->
+  <!-- ======= Sidebar ======= -->
+  <aside id="sidebar" class="sidebar">
+
+    <ul class="sidebar-nav" id="sidebar-nav">
+      <li class="text-center">
+      	<span th:if="${employee.employee_photo} == null"><img th:src="@{/image/default_photo.png}"></span>
+        <span th:if="${employee.employee_photo} != null"><img th:src="@{/assets/upload/photo/} + ${employee.employee_photo}" alt="Profile" class="rounded-circle" width="180px"></span>
+      </li>
+      
+      <li class="text-center">
+      	<h4 th:text="${employee.employee_name}"></h4>
+		<h6 th:text="${employee.organization}"></h6>
+      </li>
+    	<hr>
+      <li class="nav-item">
+        <a class="nav-link" th:href="@{/index}">
+          <i class="bi bi-grid"></i>
+          <span>HOME</span>
+        </a>
+      </li><!-- End homepage Nav -->
+      
+      <li class="nav-heading">Pages</li>
+      
+      <li class="nav-item">
+        <a class="nav-link collapsed" th:href="@{/employee/mypage}">
+          <i class="bi bi-person"></i>
+          <span>마이페이지</span>
+        </a>
+      </li><!-- End 마이페이지 Page Nav -->
+      
+      <!-- start 근태관리 nav -->
+      <li class="nav-item">
+        <a class="nav-link collapsed" data-bs-target="#working-nav" data-bs-toggle="collapse" href="#">
+          <i class="bi bi-calendar-week"></i><span>근태관리</span><i class="bi bi-chevron-down ms-auto"></i>
+        </a>
+        <ul id="working-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+          <li>
+            <a th:href="@{/management/attendance}">
+              <i class="bi bi-clock"></i><span>출 · 퇴근 기록</span>
+            </a>
+          </li>
+          <li>
+            <a th:href="@{/management/timerecord}">
+              <i class="bi bi-clock"></i><span>출 · 퇴근 전체보기</span>
+            </a>
+          </li>
+          <li>
+            <a th:href="@{/management/dayoff}">
+              <i class="bi bi-heart-fill"></i><span>휴무 신청</span>
+            </a>
+          </li>
+          <li>
+            <a th:href="@{/management/salary}">
+              <i class="bi bi-coin"></i><span>급여 정산서</span>
+            </a>
+          </li>
+          <li>
+            <a th:href="@{/management/contract}">
+              <i class="bi bi-file-earmark-spreadsheet"></i><span>근로 계약서</span>
+            </a>
+          </li>
+        </ul>
+      </li><!-- 근태관리 End Components Nav -->
+
+      <li class="nav-item">
+        <a class="nav-link collapsed" data-bs-target="#components-nav" data-bs-toggle="collapse" href="#">
+          <i class="bi bi-envelope"></i><span>메일함</span><i class="bi bi-chevron-down ms-auto"></i>
+        </a>
+        <ul id="components-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+          <li>
+            <a th:href="@{/mailbox/write}">
+              <i class="bi bi-pencil-square"></i><span>메일 쓰기</span>
+            </a>
+          </li>
+          <li>
+            <a th:href="@{/mailbox/readAll}">
+              <i class="bi bi-envelope-open"></i><span>전체 메일함</span>
+            </a>
+          </li>
+          <li>
+            <a th:href="@{/mailbox/sentMailbox}">
+              <i class="bi bi-arrow-right-circle"></i><span>보낸 메일함</span>
+            </a>
+          </li>
+        </ul>
+      </li><!-- End Components Nav -->
+
+      <li class="nav-item">
+        <a class="nav-link collapsed" data-bs-target="#forms-nav" data-bs-toggle="collapse" href="#">
+          <i class="bi bi-journal-text"></i><span>프로젝트</span><i class="bi bi-chevron-down ms-auto"></i>
+        </a>
+	    <ul id="forms-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+	    	<li>
+	    		<a th:href="@{/project/create}">
+	    			<i class="bi bi-circle"></i><span>프로젝트 생성</span>
+	    		</a>
+	    	</li>
+			<li>
+	            <a th:href="@{/project/main}">
+					<i class="bi bi-circle"></i><span>프로젝트 메인페이지</span>
+	            </a>
+			</li>
+		</ul>
+	 </li><!-- End Forms Nav -->
+	 
+	  <!-- start 전자결재 nav -->
+	   <li class="nav-item">
+        <a class="nav-link collapsed" th:href="@{/draft/main}">
+          <i class="bi bi-journal-text"></i>
+          <span>전자결재</span>
+        </a>
+       </li><!-- End 전자결재 nav -->
+       
+       <li class="nav-item">
+        
+      </li><!-- End Blank Page Nav -->
+       
+      <li class="nav-item">
+        <a class="nav-link collapsed" data-bs-target="#tables-nav" data-bs-toggle="collapse" href="#">
+          <i class="bi bi-layout-text-window-reverse"></i><span>게시판</span><i class="bi bi-chevron-down ms-auto"></i>
+        </a>
+        <ul id="tables-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+          <li>
+            <a class="nav-link collapsed" th:href="@{/board/companynotice}">
+	          <i class="bi bi-exclamation-triangle-fill"></i><span>전사공지</span>
+	        </a>
+          </li>
+          <li>
+            <a class="nav-link collapsed" th:href="@{/board/programboard}">
+	          <i class="bi bi-dropbox"></i><span>사내소프트웨어</span>
+	        </a>
+          </li>
+          <li>
+            <a class="nav-link collapsed" th:href="@{/freeboard/list}">
+	          <i class="bi bi-card-list"></i><span>자유게시판</span>
+	        </a>
+          </li>
+        </ul>
+      </li><!-- End 게시판 Nav -->
+
+	<hr>
+
+	<li class="nav-item" sec:authorize="isAuthenticated()">
+        <a class="nav-link collapsed" th:href="@{/logout}">
+          <i class="bi bi-box-arrow-in-right"></i>
+          <span>로그아웃</span>
+        </a>
+      </li><!-- End Logout Page Nav -->
+    </ul>
+
+  </aside><!-- End Sidebar-->
+  
+  <main id="main" class="main">
+
+    <div class="pagetitle">
+      <h1>Schedule</h1>
+      <nav>
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a th:href="@{/index}">Home</a></li>
+          <li class="breadcrumb-item"><a th:href="@{/employee/mypage}">Users</a></li>
+          <li class="breadcrumb-item active">Schedule</li>
+        </ol>
+      </nav>
+    </div><!-- End Page Title -->
+
+    <section class="section dashboard">
+    	<div class="row">
+    		<div class="col-10">
+		    	<div class="card">
+					<div class="card-body">
+					    <div id="calendarBox">
+					        <div id="calendar"></div>
+					    </div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+	    <!-- 일정추가 때의 modal -->
+	    <div class="modal fade" id="calendarModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+	        aria-hidden="true">
+	        <div class="modal-dialog" role="document">
+	            <div class="modal-content">
+	                <div class="modal-header">
+	                    <h5 class="modal-title" id="exampleModalLabel">일정을 입력하세요.</h5>
+	                    <button type="button" id="closeButton1" class="close" data-dismiss="modal" aria-label="Close">
+	                        <span aria-hidden="true">&times;</span>
+	                    </button>
+	                </div>
+	                <form class="form-group" method="post" th:action="@{/schedule/save}">
+	                <div class="modal-body">
+	                        <label for="taskId" class="col-form-label">일정 제목</label>
+	                        <input type="text" class="form-control" id="schedule_title" name="schedule_title">                    
+	                        <label for="taskId" class="col-form-label">일정 내용</label>
+	                        <input type="text" class="form-control" id="schedule_contents" name="schedule_contents">
+	                        <label for="taskId" class="col-form-label">시작 날짜</label>
+	                        <input type="datetime-local" class="form-control" id="schedule_startDate" name="schedule_startDate">
+	                        <label for="taskId" class="col-form-label">종료 날짜</label>
+	                        <input type="datetime-local" class="form-control" id="schedule_endDate" name="schedule_endDate">
+	                    
+	                </div>
+	                <div class="modal-footer">
+	                    <button type="submit" class="btn btn-warning" id="addCalendar">추가</button>
+	                    <button type="button" class="btn btn-secondary" data-dismiss="modal"
+	                        id="sprintSettingModalClose">취소</button>
+	                </div>
+	                </form>
+	    
+	            </div>
+	        </div>
+	    </div>
+	    
+	    <!-- 일정클릭 때의 modal -->
+	    <div class="modal fade" id="calendarModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+	        aria-hidden="true">
+	        <div class="modal-dialog" role="document">
+	            <div class="modal-content">
+	                <div class="modal-header">
+	                    <h5 class="modal-title" id="exampleModalLabel">일정을 확인하세요.</h5>
+	                    <button type="button" id="closeButton2" class="close" data-dismiss="modal" aria-label="Close">
+	                        <span aria-hidden="true">&times;</span>
+	                    </button>
+	                </div>
+	                <div class="modal-body">
+	                        <label for="schedule_title2" class="col-form-label">일정 제목</label>
+	                        <input type="text" class="form-control" id="schedule_title2" >                    
+	                        <label for="schedule_contents2" class="col-form-label">일정 내용</label>
+	                        <input type="text" class="form-control" id="schedule_contents2">
+	                        <label for="schedule_startDate2" class="col-form-label">시작 날짜</label>
+	                        <input type="datetime-local" class="form-control" id="schedule_startDate2">
+	                        <label for="schedule_endDate2" class="col-form-label">종료 날짜</label>
+	                        <input type="datetime-local" class="form-control" id="schedule_endDate2">
+	                </div>
+	                <div class="modal-footer">
+	                	<form method="post" th:action="@{deleteSchedule}" id="deleteScheduleForm">
+	                		<input type="hidden" name="schedule_num" id="deleteSchedule_num">
+	                	</form>
+	                	<button type="button" class="btn btn-warning" id="deleteSchedule">삭제</button>
+	                    <button type="button" class="btn btn-secondary" data-dismiss="modal"
+	                        id="sprintSettingModalClose2">취소</button>
+	                </div>
+	            </div>
+	        </div>
+	    </div><!-- 일정클릭 때의 modal 끝 -->
+      </section>
+  </main><!-- End #main -->
+  
+  <!-- ======= Footer ======= -->
+	<footer id="footer" class="footer">
+		<div class="copyright">
+			&copy; Copyright <strong><span>NiceAdmin</span></strong>. All Rights Reserved
+		</div>
+		<div class="credits">
+			<!-- All the links in the footer should remain intact. -->
+			<!-- You can delete the links only if you purchased the pro version. -->
+			<!-- Licensing information: https://bootstrapmade.com/license/ -->
+			<!-- Purchase the pro version with working PHP/AJAX contact form: https://bootstrapmade.com/nice-admin-bootstrap-admin-html-template/ -->
+			Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a>
+		</div>
+	</footer><!-- End Footer -->
+
+	<a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i
+			class="bi bi-arrow-up-short"></i></a>
+</body>
+
+</html>

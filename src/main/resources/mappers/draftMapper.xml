@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<!-- net.softsociety.Team4GroupWare.dao패키지의 DraftDAO인터페이스와 매핑됨 -->
+<mapper namespace="net.softsociety.Team4GroupWare.dao.DraftDAO">
+	<!-- 로그인 사원 조회 -->
+	<select id="readEmployee" parameterType="String" resultType="Employee">
+		select *
+		from team4_employee
+		where employee_id = #{employee_id}
+	</select>
+	
+	<!-- 예비 기안 시퀀스 추가 -->
+	<select id="createCode" resultType="String">
+		select (LPAD(team4_draft_seq.nextval, 4, 0))
+		from dual
+	</select>
+	
+	<!-- 결재선 추가 -->
+	<insert id="addApprover" parameterType="DraftApprover">
+		insert into team4_draft_approver
+		(approver_code
+		,draft_code
+		,employee_code
+		,approver_name
+		,process_type
+		,process_turn_code
+		,process_enabled)
+		values
+		(LPAD(team4_approver_seq.nextval, 4, 0)
+		,#{draft_code}
+		,#{employee_code}
+		,#{approver_name}
+		,#{process_type}
+		,#{process_turn_code} + 1 
+		,#{process_enabled}
+		)
+	</insert>
+	
+	<!-- 기안에 있는 결재선 카운팅 -->
+	<select id="countDraftCode" parameterType="String" resultType="String">
+		select *
+		from team4_draft_approver
+		where draft_code = #{draft_code}
+	</select>
+	
+	<!-- 결재자 찾기 -->
+	<select id="readApprover" parameterType="DraftApprover" resultType="DraftApprover">
+		select *
+		from team4_draft_approver
+		where draft_code = #{draft_code} and employee_code = #{employee_code}
+	</select>
+	
+	<!-- 양식 찾기 -->
+	<select id="selectByType" parameterType="DocumentForm" resultType="DocumentForm">
+		select *
+		from team4_document_form
+		where company_code = #{company_code} and document_form_type = #{document_form_type}
+	</select>
+	
+	<!-- 한 가지 양식 불러오기 -->
+	<select id="readDocumentForm" parameterType="String" resultType="DocumentForm">
+		select *
+		from team4_document_form
+		where document_form_code = #{document_form_code}
+	</select>
+	
+	<!-- 개인 양식 불러오기 -->
+	<select id="selectAllDoc" parameterType="DocumentForm" resultType="DocumentForm">
+		select *
+		from team4_document_form
+		where company_code = #{company_code} and document_form_writer_code = #{document_form_writer_code}
+		order by document_form_code desc
+	</select>
+	
+	<!-- 기안 첨부파일 추가 -->
+	<insert id="addDraftAttFile" parameterType="AttachedFile">
+		insert into team4_attached_file
+		(company_code
+		,attached_file_code
+		,document_code
+		,attached_file_origin_name
+		,attached_file_save_name
+		,attached_file_ext
+		,employee_code
+		,employee_id
+		,employee_name
+		)
+		values
+		(#{company_code}
+		,'File'||LPAD(team4_attached_file_seq.nextval, 4, 0)
+		, #{document_code}
+		,#{attached_file_origin_name}
+		,#{attached_file_save_name}
+		,#{attached_file_ext}
+		,#{employee_code}
+		,#{employee_id}
+		,#{employee_name}
+		)
+	</insert>
+	
+	<!-- 기안 첨부파일 모두 가져오기 -->
+	<select id="selectAllDraftFile" parameterType="String" resultType="AttachedFile">
+		select *
+		from team4_attached_file
+		where document_code = #{document_code}
+	</select>
+	
+	<!-- 기안 의견 추가 -->
+	<insert id="addOpinion" parameterType="DraftOpnion">
+		insert into team4_draft_opinion
+		(opinion_code
+		,draft_code
+		,opinion_writer_code
+		,opinion_writer_name
+		,opinion_contents
+		)
+		values
+		('OP'||LPAD(team4_opinion_seq.nextval, 4, 0)
+		, #{draft_code}
+		, #{opinion_writer_code}
+		, #{opinion_writer_name}
+		, #{opinion_contents}
+		)
+	</insert>
+	
+	<!-- 모든 기안 불러오기 -->
+	<select id="selectAllOpinion" parameterType="String" resultType="DraftOpnion">
+		select
+			opinion_code
+			, draft_code
+			, opinion_writer_code
+			, opinion_writer_name
+			, opinion_contents
+			, to_char(opinion_date, 'yyyy/mm/dd') as opinion_date
+		from team4_draft_opinion
+		where draft_code = #{draft_code}
+	</select>
+	
+	<!-- 기안 저장하기 -->
+	<insert id="addDraft" parameterType="Draft">
+		insert into team4_draft
+		(company_code
+		 ,draft_code
+		 ,employee_code
+		 ,employee_name
+		 ,employee_organization
+		 ,draft_title
+		 ,draft_contents
+		 ,draft_inputdate
+		 ,draft_duedate
+		 ,process_type
+		 ,draft_saved
+		 ,process_enabled
+		 ,document_form_code)
+		values
+		(#{company_code}
+		,#{draft_code}
+		,#{employee_code}
+		,#{employee_name}
+		,#{employee_organization}
+		,#{draft_title}
+		,#{draft_contents}
+		,#{draft_inputdate}
+		,#{draft_duedate}
+		,#{process_type}
+		,#{draft_saved}
+		,#{process_enabled}
+		,#{document_form_code})
+	</insert>
+	
+	<!-- 결재 요청함 -->
+	<select id="selectAllDraft" parameterType="DraftBox" resultType="DraftBox">
+		select *
+		from team4_draft
+		where employee_code = #{approver_code} and process_enabled = #{process_enabled}
+		order by draft_code desc
+	</select>
+	
+	<!-- 결재선 추가 -->
+	<insert id="addDraftApprover" parameterType="DraftApprover">
+		insert into team4_draft_approver
+		(draft_code
+		, approver_code
+		, employee_code
+		, approver_name
+		, process_type
+		, process_turn_code
+		, process_enabled)
+		values
+		(#{draft_code}
+		, #{approver_code}
+		, #{employee_code}
+		, #{approver_name}
+		, #{process_type}
+		, #{process_turn_code}
+		, #{process_enabled})
+	</insert>
+	
+	<!-- 기안 내용 가져오기 -->
+	<select id="readDraft" parameterType="String" resultType="Draft">
+		select *
+		from team4_draft
+		where draft_code = #{draft_code}
+	</select>
+	
+	<!-- 결재선 내용 가져오기 -->
+	<select id="selectAllDraftApprover" parameterType="String" resultType="DraftApprover">
+		select *
+		from team4_draft_approver
+		where draft_code = #{draft_code}
+		order by process_turn_code desc
+	</select>
+	
+	<!-- 결재선 내용 가져오기 -->
+	<select id="selectAllAttachedFile" parameterType="String" resultType="AttachedFile">
+		select *
+		from team4_attached_file
+		where document_code = #{document_code}
+		order by attached_file_code desc
+	</select>
+	
+	<!-- 지정 전결자 가져오기 -->
+	<select id="findAppByCode" parameterType="String" resultType="String">
+		select final_approver_name
+		from team4_document_form
+		where document_form_code = #{document_form_code}
+	</select>
+	
+	<!-- 결재 대기함 가져오기 -->
+	<select id="findWaitingDraft" parameterType="DraftBox" resultType="DraftBox">
+		select 
+		      d.draft_code
+		    , d.draft_title
+		    , d.draft_writedate
+		    , d.employee_name
+		    , a.approver_code
+		    , a.process_enabled
+		from team4_draft d, team4_draft_approver a
+		where 
+			d.draft_code = a.draft_code 
+			and approver_code = #{approver_code}
+			and a.process_enabled = #{process_enabled}
+		order by draft_code desc
+	</select>
+	
+	<!-- 결재 진행함 가져오기 -->
+	<select id="findProgressDraft" parameterType="DraftBox" resultType="DraftBox">
+		select 
+		      d.draft_code
+		    , d.draft_title
+		    , d.draft_writedate
+		    , d.employee_name
+		    , a.approver_code
+		    , a.process_enabled
+		from team4_draft d, team4_draft_approver a
+		where 
+			d.draft_code = a.draft_code 
+			and approver_code = #{approver_code}
+			and a.process_enabled = #{process_enabled}
+		order by draft_code desc
+	</select>
+	
+	<!-- 결재 완료함 가져오기 -->
+	<select id="findCompleteDraft" parameterType="DraftBox" resultType="DraftBox">
+		select 
+		      draft_code
+		    , draft_title
+		    , draft_writedate
+		    , employee_name
+		    , employee_code
+		    , process_enabled
+		from team4_draft
+		where employee_code = #{approver_code} and process_enabled = #{process_enabled}
+		order by draft_code desc
+	</select>
+	
+	<!-- 결재 완료함 가져오기 -->
+	<select id="findCompleteDraft2" parameterType="DraftBox" resultType="DraftBox">
+		select 
+		      d.draft_code
+		    , d.draft_title
+		    , d.draft_writedate
+		    , d.employee_name
+		    , d.employee_code
+		    , a.approver_code
+		    , d.process_enabled
+		    , a.process_type
+		from team4_draft d, team4_draft_approver a
+		where d.draft_code = a.draft_code and a.approver_code = #{approver_code} and d.process_enabled = #{process_enabled}
+		order by draft_code desc
+	</select>
+	
+	<!-- 결재 완료함 가져오기 -->
+	<select id="findRejectDraft" parameterType="DraftBox" resultType="DraftBox">
+		select 
+		      draft_code
+		    , draft_title
+		    , draft_writedate
+		    , employee_name
+		    , employee_code
+		    , process_enabled
+		from team4_draft
+		where employee_code = #{approver_code} and process_enabled = #{process_enabled}
+		order by draft_code desc
+	</select>
+	
+	<!-- 결재 참조함 가져오기 -->
+	<select id="findReferenceDraft" parameterType="DraftBox" resultType="DraftBox">
+		select 
+		      d.draft_code
+		    , d.draft_title
+		    , d.draft_writedate
+		    , d.employee_name
+		    , d.employee_code
+		    , a.approver_code
+		    , d.process_enabled
+		    , a.process_type
+		from team4_draft d, team4_draft_approver a
+		where 
+			d.draft_code = a.draft_code
+			and a.approver_code = #{approver_code} 
+			and a.process_type = #{process_type}
+		order by draft_code desc
+	</select>
+</mapper>
